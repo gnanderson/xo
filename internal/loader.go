@@ -152,6 +152,10 @@ func (tl TypeLoader) ParseQuery(args *ArgType) error {
 
 		// process columns
 		for _, c := range colList {
+			if c.IsAutoIncrement {
+				typeTpl.AutoIncrement = true
+				typeTpl.AutoIncrementName = c.ColumnName
+			}
 			f := &Field{
 				Name: SnakeToCamel(strings.ToLower(c.ColumnName)),
 				Col:  c,
@@ -483,6 +487,11 @@ func (tl TypeLoader) LoadColumns(args *ArgType, typeTpl *Type) error {
 
 	// process columns
 	for _, c := range columnList {
+		if c.IsAutoIncrement {
+			typeTpl.AutoIncrement = true
+			typeTpl.AutoIncrementName = c.ColumnName
+		}
+
 		// set col info
 		f := &Field{
 			Name: SnakeToCamel(strings.ToLower(c.ColumnName)),
@@ -633,6 +642,7 @@ func (tl TypeLoader) LoadTableIndexes(args *ArgType, typeTpl *Type, ixMap map[st
 
 	// load indexes
 	indexList, err := tl.IndexList(args.DB, args.Schema, typeTpl.Table.TableName)
+
 	if err != nil {
 		return err
 	}
@@ -679,7 +689,7 @@ func (tl TypeLoader) LoadTableIndexes(args *ArgType, typeTpl *Type, ixMap map[st
 	if args.LoaderType != "ora" && !priIxLoaded && pk != nil {
 		ixName := typeTpl.Table.TableName + "_" + pk.Col.ColumnName + "_pkey"
 		ixMap[ixName] = &Index{
-			FuncName: typeTpl.Name + "By" + pk.Name,
+			FuncName: typeTpl.Name + "ByID",
 			Schema:   args.Schema,
 			Type:     typeTpl,
 			Fields:   []*Field{pk},

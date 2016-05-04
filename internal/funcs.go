@@ -23,7 +23,35 @@ func (a *ArgType) NewTemplateFuncs() template.FuncMap {
 		"shortname":      a.shortname,
 		"convext":        a.convext,
 		"schema":         a.schemafn,
+		"dedupe":         a.dedupe,
+		"num2char":       a.num2char,
+		"colname":        a.colname,
 	}
+}
+
+func (a *ArgType) dedupe(refTypeName, fieldName string) string {
+	if split := strings.Split(fieldName, refTypeName); len(split) > 0 {
+		return split[0] + refTypeName
+	}
+	return refTypeName
+}
+
+func (a *ArgType) num2char(name string) string {
+	switch {
+	case strings.HasPrefix(name, "2"):
+		return strings.Replace(name, "2", "Two", 1)
+	case strings.HasPrefix(name, "3"):
+		return strings.Replace(name, "3", "Three", 1)
+	}
+	return name
+}
+
+func (a *ArgType) colname(name string) string {
+	switch name {
+	case "Deleted":
+		return "Removed"
+	}
+	return name
 }
 
 // retype checks the type against the known types, adding the custom type
@@ -240,11 +268,11 @@ func (a *ArgType) fieldnames(fields []*Field, prefix string, ignoreNames ...stri
 		if i != 0 {
 			str = str + ", "
 		}
-		str = str + prefix + "." + f.Name
+		str = str + prefix + "." + a.colname(a.num2char(f.Name))
 		i++
 	}
 
-	return str
+	return a.num2char(str)
 }
 
 // count returns the 1-based count of fields, excluding any field name in
@@ -324,7 +352,11 @@ func (a *ArgType) goparamlist(fields []*Field, addType bool, ignoreNames ...stri
 			s = r
 		}
 
-		str = str + ", " + s
+		if str == "" {
+			str = str + s
+		} else {
+			str = str + ", " + s
+		}
 		if addType {
 			str = str + " " + a.retype(f.Type)
 		}
